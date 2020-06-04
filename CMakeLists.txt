@@ -13,5 +13,8 @@ if(HAVE_GETOPT)
   target_compile_definitions(optlib PRIVATE -DHAVE_GETOPT)
 endif()
 
+configure_file(etc/optlib.pc.in optlib.pc @ONLY)
+
 install(TARGETS optlib DESTINATION lib)
 install(FILES optlib.h DESTINATION include/optlib)
+install(FILES ${CMAKE_BINARY_DIR}/optlib.pc DESTINATION lib/pkgconfig)
