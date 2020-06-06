@@ -25,10 +25,10 @@ static char *translate_w32_option(char const *long_opt) {
             ++n_hyphen;
         }
     }
-    char *result = malloc(len - n_hyphen);
+    char *result = malloc(len - n_hyphen + 1);
     size_t off = 0;
     bool prev_hyphen = true;
-    for (size_t i = 0; i < len; ++i) {
+    for (size_t i = 0; i <= len; ++i) {
         if (long_opt[i] == '-') {
             prev_hyphen = true;
             continue;
@@ -48,6 +48,7 @@ struct optlib_parser *optlib_parser_new(int argc, char **argv) {
     if (argc <= 0) return NULL;
 
     struct optlib_parser *p = malloc(sizeof(struct optlib_parser));
+    memset(p, 0, sizeof(struct optlib_parser));
 
     /* duplicate argc and argv */
     p->argc = argc;
@@ -105,11 +106,6 @@ void optlib_parser_free(struct optlib_parser *p) {
 void optlib_parser_add_option(struct optlib_parser *p, char const *long_opt,
                               char const short_opt, bool const has_arg,
                               char const *description) {
-    if (p->initialized) {
-        assert(p->options->option_count > 0);
-        p->options->option_count--;
-    }
-
     p->initialized = false;
 
     if (p->options->option_capacity <= p->options->option_count) {
@@ -121,9 +117,6 @@ void optlib_parser_add_option(struct optlib_parser *p, char const *long_opt,
         }
         p->options->options = realloc(p->options->options,
                                       sizeof(struct optlib_option) * new_cap);
-#if !defined(_WIN32) && defined(HAVE_GETOPT_LONG)
-        p->longopts = realloc(p->longopts, sizeof(struct option) * new_cap);
-#endif
         p->options->option_capacity = new_cap;
     }
 
