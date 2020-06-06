@@ -24,7 +24,7 @@
 
 BEGIN_DECL;
 
-struct optlib_option {
+typedef struct optlib_option {
     char *long_opt;
     char short_opt;
     bool has_arg;
@@ -33,15 +33,11 @@ struct optlib_option {
 #ifdef _WIN32
     char *w32_translated;
 #endif
-};
+} optlib_option;
 
-struct optlib_options {
-    struct optlib_option *options;
-    size_t option_count;
-    size_t option_capacity;
-};
+struct optlib_options;
 
-struct optlib_parser {
+typedef struct optlib_parser {
     struct optlib_options *options;
     int argc;
     char **argv;
@@ -59,15 +55,15 @@ struct optlib_parser {
     char *shortopts;
 #    endif
 #endif
-};
+} optlib_parser;
 
-struct optlib_parser *optlib_parser_new(int argc, char **argv);
-void optlib_parser_free(struct optlib_parser *p);
-void optlib_parser_add_option(struct optlib_parser *p, char const *long_opt,
+optlib_parser *optlib_parser_new(int argc, char **argv);
+void optlib_parser_free(optlib_parser *p);
+void optlib_parser_add_option(optlib_parser *p, char const *long_opt,
                               char const short_opt, bool const has_arg,
                               char const *description);
-struct optlib_option *optlib_next(struct optlib_parser *p);
-void optlib_print_help(struct optlib_parser *p, FILE *strm);
+optlib_option *optlib_next(optlib_parser *p);
+void optlib_print_help(optlib_parser *p, FILE *strm);
 
 END_DECL;
 

@@ -16,6 +16,7 @@
 #endif
 
 #include "optlib.h"
+#include "optlib_internal.h"
 
 static char *translate_w32_option(char const *long_opt) {
     size_t len = strlen(long_opt);
@@ -44,11 +45,11 @@ static char *translate_w32_option(char const *long_opt) {
     return result;
 }
 
-struct optlib_parser *optlib_parser_new(int argc, char **argv) {
+optlib_parser *optlib_parser_new(int argc, char **argv) {
     if (argc <= 0) return NULL;
 
-    struct optlib_parser *p = malloc(sizeof(struct optlib_parser));
-    memset(p, 0, sizeof(struct optlib_parser));
+    optlib_parser *p = malloc(sizeof(optlib_parser));
+    memset(p, 0, sizeof(optlib_parser));
 
     /* duplicate argc and argv */
     p->argc = argc;
@@ -67,8 +68,8 @@ struct optlib_parser *optlib_parser_new(int argc, char **argv) {
         off += len;
     }
 
-    p->options = malloc(sizeof(struct optlib_options));
-    memset(p->options, 0, sizeof(struct optlib_options));
+    p->options = malloc(sizeof(optlib_options));
+    memset(p->options, 0, sizeof(optlib_options));
 
 #if defined(HAVE_GETOPT_LONG) || defined(HAVE_GETOPT)
     p->opterr = 1;
@@ -78,7 +79,7 @@ struct optlib_parser *optlib_parser_new(int argc, char **argv) {
     return p;
 }
 
-void optlib_parser_free(struct optlib_parser *p) {
+void optlib_parser_free(optlib_parser *p) {
     /* p->argv[0] points to head of *all argument* buffer. */
     free(p->argv[0]);
     free(p->argv);
@@ -103,7 +104,7 @@ void optlib_parser_free(struct optlib_parser *p) {
 #endif
 }
 
-void optlib_parser_add_option(struct optlib_parser *p, char const *long_opt,
+void optlib_parser_add_option(optlib_parser *p, char const *long_opt,
                               char const short_opt, bool const has_arg,
                               char const *description) {
     p->initialized = false;
@@ -116,12 +117,12 @@ void optlib_parser_add_option(struct optlib_parser *p, char const *long_opt,
             new_cap = p->options->option_capacity << 1;
         }
         p->options->options = realloc(p->options->options,
-                                      sizeof(struct optlib_option) * new_cap);
+                                      sizeof(optlib_option) * new_cap);
         p->options->option_capacity = new_cap;
     }
 
-    struct optlib_option *opt = p->options->options + p->options->option_count;
-    memset(opt, 0, sizeof(struct optlib_option));
+     optlib_option *opt = p->options->options + p->options->option_count;
+    memset(opt, 0, sizeof(optlib_option));
     if (long_opt) {
         size_t len = strlen(long_opt) + 1;
         opt->long_opt = malloc(len);
@@ -144,7 +145,7 @@ void optlib_parser_add_option(struct optlib_parser *p, char const *long_opt,
 }
 
 #ifdef HAVE_GETOPT_LONG
-static void prepare_getopt_long(struct optlib_parser *p) {
+static void prepare_getopt_long(optlib_parser *p) {
     size_t longcount = 0;
     for (size_t i = 0; i < p->options->option_count; ++i) {
         if (p->options->options[i].long_opt) {
@@ -171,7 +172,7 @@ static void prepare_getopt_long(struct optlib_parser *p) {
 }
 #endif
 
-static void pre_parse_initialize(struct optlib_parser *p) {
+static void pre_parse_initialize(optlib_parser *p) {
 #if !defined(_WIN32) && (defined(HAVE_GETOPT_LONG) || defined(HAVE_GETOPT))
 #    ifdef HAVE_GETOPT_LONG
     prepare_getopt_long(p);
@@ -200,7 +201,7 @@ static void pre_parse_initialize(struct optlib_parser *p) {
 #endif
 }
 
-struct optlib_option *optlib_next(struct optlib_parser *p) {
+optlib_option *optlib_next(optlib_parser *p) {
     if (!p->initialized) {
         pre_parse_initialize(p);
         p->initialized = true;
@@ -219,7 +220,7 @@ retry:
     this_arg = p->argv[p->optind++];
     if (this_arg[0] == '-') {
         for (size_t i = 0; i < p->options->option_count; ++i) {
-            struct optlib_option *opt = &p->options->options[i];
+            optlib_option *opt = &p->options->options[i];
             if (opt->w32_translated) {
                 if (!strcmp(opt->w32_translated, this_arg + 1)) {
                     if (opt->has_arg) {
@@ -299,7 +300,7 @@ retry:
     return NULL;
 }
 
-void optlib_print_help(struct optlib_parser *p, FILE *strm) {
+void optlib_print_help(optlib_parser *p, FILE *strm) {
 #ifdef _WIN32
     size_t padding = 0;
     for (size_t i = 0; i < p->options->option_count; ++i) {
@@ -355,7 +356,7 @@ void optlib_print_help(struct optlib_parser *p, FILE *strm) {
 
     for (size_t i = 0; i < p->options->option_count; ++i) {
         fputs("  ", strm);
-        struct optlib_option opt = p->options->options[i];
+         optlib_option opt = p->options->options[i];
         if (opt.short_opt) {
             fprintf(strm, "-%c", opt.short_opt);
             if (opt.has_arg) {
@@ -402,7 +403,7 @@ void optlib_print_help(struct optlib_parser *p, FILE *strm) {
     }
 
     for (size_t i = 0; i < p->options->option_count; ++i) {
-        struct optlib_option opt = p->options->options[i];
+        optlib_option opt = p->options->options[i];
         if (!opt.short_opt) {
             continue;
         }
@@ -457,12 +458,12 @@ int main(void) {
 #    else
     char *argv1[] = {"progname", "-a", "bar", 0};
 #    endif
-    struct optlib_parser *parser = optlib_parser_new(3, argv1);
+    optlib_parser *parser = optlib_parser_new(3, argv1);
     optlib_parser_add_option(parser, "foo", 'a', true, "do foo");
     optlib_parser_add_option(parser, "foo-bar", 'b', true, "do foobar");
     optlib_parser_add_option(parser, "foo-bar-baz", 'c', false, "do foobarbaz");
     optlib_parser_add_option(parser, "hoge", 0, false, "do hoge");
-    struct optlib_option *opt = optlib_next(parser);
+    optlib_option *opt = optlib_next(parser);
     test_assert(opt);
     test_assert(!strcmp(opt->long_opt, "foo"));
     test_assert(opt->argval);
