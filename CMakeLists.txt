@@ -19,11 +19,14 @@ endfunction()
 add_library(optlib STATIC optlib.c)
 add_env_definitions(optlib)
 
-add_executable(optlib_test optlib.c)
-target_compile_definitions(optlib_test PRIVATE -DTEST)
-add_env_definitions(optlib_test)
+add_executable(optlib_test_builtin optlib.c)
+target_compile_definitions(optlib_test_builtin PRIVATE -DTEST)
+add_env_definitions(optlib_test_builtin)
+add_test(NAME optlib_test_builtin COMMAND optlib_test_builtin)
 
-add_test(NAME optlib_test_builtin COMMAND optlib_test)
+add_executable(optlib_test optlib.c tests.c)
+add_env_definitions(optlib_test)
+add_test(NAME optlib_test COMMAND optlib_test)
 
 configure_file(etc/optlib.pc.in optlib.pc @ONLY)
 

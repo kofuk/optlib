@@ -154,7 +154,7 @@ bool optlib_parser_add_option(optlib_parser *p, char const *long_opt,
 }
 
 #ifdef HAVE_GETOPT_LONG
-static void prepare_getopt_long(optlib_parser *p) {
+static bool prepare_getopt_long(optlib_parser *p) {
     size_t longcount = 0;
     for (size_t i = 0; i < p->options->option_count; ++i) {
         if (p->options->options[i].long_opt) {
@@ -164,7 +164,11 @@ static void prepare_getopt_long(optlib_parser *p) {
     /* for sentinel element */
     ++longcount;
 
-    p->longopts = realloc(p->longopts, sizeof(struct option) * longcount);
+    struct option *new_longopts = realloc(p->longopts, sizeof(struct option) * longcount);
+    if (!new_longopts) {
+        return false;
+    }
+    p->longopts = new_longopts;
     size_t off = 0;
     for (size_t i = 0; i < p->options->option_count; ++i) {
         if (p->options->options[i].long_opt) {
@@ -172,19 +176,22 @@ static void prepare_getopt_long(optlib_parser *p) {
             p->longopts[off].has_arg = p->options->options[i].has_arg
                                            ? required_argument
                                            : no_argument;
-            p->longopts[off].val = p->options->options[i].short_opt;
+            p->longopts[off].val = 0;
             p->longopts[off].flag = NULL;
             ++off;
         }
     }
     memset(p->longopts + off, 0, sizeof(struct option));
+    return true;
 }
 #endif
 
-static void pre_parse_initialize(optlib_parser *p) {
+static bool pre_parse_initialize(optlib_parser *p) {
 #if !defined(_WIN32) && (defined(HAVE_GETOPT_LONG) || defined(HAVE_GETOPT))
 #    ifdef HAVE_GETOPT_LONG
-    prepare_getopt_long(p);
+    if (!prepare_getopt_long(p)) {
+        return false;
+    }
 #    endif
     size_t shortlen = 0;
     for (size_t i = 0; i < p->options->option_count; ++i) {
@@ -196,7 +203,11 @@ static void pre_parse_initialize(optlib_parser *p) {
         }
     }
 
-    p->shortopts = realloc(p->shortopts, shortlen);
+    char *new_shortopts = realloc(p->shortopts, shortlen);
+    if (!new_shortopts) {
+        return false;
+    }
+    p->shortopts = new_shortopts;
     size_t off = 0;
     for (size_t i = 0; i < p->options->option_count; ++i) {
         if (p->options->options[i].short_opt) {
@@ -208,11 +219,14 @@ static void pre_parse_initialize(optlib_parser *p) {
     }
     p->shortopts[off] = '\0';
 #endif
+    return true;
 }
 
 optlib_option *optlib_next(optlib_parser *p) {
     if (!p->initialized) {
-        pre_parse_initialize(p);
+        if (!pre_parse_initialize(p)) {
+            return NULL;
+        }
         p->initialized = true;
     }
 #if !defined(_WIN32) && (defined(HAVE_GETOPT_LONG) || defined(HAVE_GETOPT))
@@ -220,13 +234,12 @@ optlib_option *optlib_next(optlib_parser *p) {
     opterr = p->opterr;
 #endif
 #ifdef _WIN32
+retry:
     if (p->optind >= p->argc) {
         p->finished = true;
         return NULL;
     }
-    char *this_arg;
-retry:
-    this_arg = p->argv[p->optind++];
+    char *this_arg = p->argv[p->optind++];
     if (this_arg[0] == '-') {
         for (size_t i = 0; i < p->options->option_count; ++i) {
             optlib_option *opt = &p->options->options[i];
@@ -257,6 +270,7 @@ retry:
             p->argv[i] = tmp;
         }
         p->optind--;
+        p->argc--;
         goto retry;
     }
 #else
@@ -272,6 +286,13 @@ retry:
     }
     if (optc == '?' || optc == ':') {
         return NULL;
+    } else if (optc != 0) {
+        for (size_t i = 0; i < p->options->option_count; ++i) {
+            if (p->options->options[i].short_opt == optc) {
+                longindex = (int)i;
+                break;
+            }
+        }
     }
     if (p->options->options[longindex].has_arg) {
         if (!optarg) {
@@ -433,23 +454,7 @@ void optlib_print_help(optlib_parser *p, FILE *strm) {
 }
 
 #ifdef TEST
-#    ifdef _WIN32
-#        define CHECK_MARK_OK "v "
-#        define CHECK_MARK_FAILURE "x "
-#    else
-#        define CHECK_MARK_OK "\e[38;5;2m✓\e[0m "
-#        define CHECK_MARK_FAILURE "\e[38;5;9m✗\e[0m "
-#    endif
-#    define test_assert(expr)                                                 \
-        do {                                                                  \
-            if (!(expr)) {                                                    \
-                printf(CHECK_MARK_FAILURE "Assertion %s failed (line: %d)\n", \
-                       #expr, __LINE__);                                      \
-                exit(1);                                                      \
-            } else {                                                          \
-                printf(CHECK_MARK_OK "%s\n", #expr);                          \
-            }                                                                 \
-        } while (0);
+#    include "test_util.h"
 
 int main(void) {
     test_assert(!strcmp(translate_w32_option("foo-bar"), "FooBar"));
