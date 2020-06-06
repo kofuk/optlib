@@ -27,6 +27,7 @@ static char *translate_w32_option(char const *long_opt) {
         }
     }
     char *result = malloc(len - n_hyphen + 1);
+    if (!result) return NULL;
     size_t off = 0;
     bool prev_hyphen = true;
     for (size_t i = 0; i <= len; ++i) {
@@ -49,17 +50,20 @@ optlib_parser *optlib_parser_new(int argc, char **argv) {
     if (argc <= 0) return NULL;
 
     optlib_parser *p = malloc(sizeof(optlib_parser));
+    if (!p) return NULL;
     memset(p, 0, sizeof(optlib_parser));
 
     /* duplicate argc and argv */
     p->argc = argc;
     p->argv = malloc(sizeof(char *) * (unsigned int)argc);
+    if (!p->argv) return NULL;
     size_t argv_total_size = 0;
     for (int i = 0; i < argc; ++i) {
         size_t len = strlen(argv[i]);
         argv_total_size += len + 1;
     }
     char *argbuf = malloc(argv_total_size);
+    if (!argbuf) return NULL;
     size_t off = 0;
     for (int i = 0; i < argc; ++i) {
         size_t len = strlen(argv[i]) + 1;
@@ -69,6 +73,7 @@ optlib_parser *optlib_parser_new(int argc, char **argv) {
     }
 
     p->options = malloc(sizeof(optlib_options));
+    if (!p->options) return NULL;
     memset(p->options, 0, sizeof(optlib_options));
 
 #if defined(HAVE_GETOPT_LONG) || defined(HAVE_GETOPT)
@@ -104,7 +109,7 @@ void optlib_parser_free(optlib_parser *p) {
 #endif
 }
 
-void optlib_parser_add_option(optlib_parser *p, char const *long_opt,
+bool optlib_parser_add_option(optlib_parser *p, char const *long_opt,
                               char const short_opt, bool const has_arg,
                               char const *description) {
     p->initialized = false;
@@ -116,16 +121,19 @@ void optlib_parser_add_option(optlib_parser *p, char const *long_opt,
         } else {
             new_cap = p->options->option_capacity << 1;
         }
-        p->options->options = realloc(p->options->options,
-                                      sizeof(optlib_option) * new_cap);
+        optlib_option *new_opts =
+            realloc(p->options->options, sizeof(optlib_option) * new_cap);
+        if (!new_opts) return false;
+        p->options->options = new_opts;
         p->options->option_capacity = new_cap;
     }
 
-     optlib_option *opt = p->options->options + p->options->option_count;
+    optlib_option *opt = p->options->options + p->options->option_count;
     memset(opt, 0, sizeof(optlib_option));
     if (long_opt) {
         size_t len = strlen(long_opt) + 1;
         opt->long_opt = malloc(len);
+        if (!opt->long_opt) return false;
         memcpy(opt->long_opt, long_opt, len);
 #ifdef _WIN32
         opt->w32_translated = translate_w32_option(long_opt);
@@ -138,10 +146,12 @@ void optlib_parser_add_option(optlib_parser *p, char const *long_opt,
     if (description) {
         size_t len = strlen(description) + 1;
         opt->description = malloc(len);
+        if (!opt->description) return false;
         memcpy(opt->description, description, len);
     }
 
     p->options->option_count++;
+    return true;
 }
 
 #ifdef HAVE_GETOPT_LONG
@@ -356,7 +366,7 @@ void optlib_print_help(optlib_parser *p, FILE *strm) {
 
     for (size_t i = 0; i < p->options->option_count; ++i) {
         fputs("  ", strm);
-         optlib_option opt = p->options->options[i];
+        optlib_option opt = p->options->options[i];
         if (opt.short_opt) {
             fprintf(strm, "-%c", opt.short_opt);
             if (opt.has_arg) {

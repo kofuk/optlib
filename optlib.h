@@ -59,7 +59,7 @@ typedef struct optlib_parser {
 
 optlib_parser *optlib_parser_new(int argc, char **argv);
 void optlib_parser_free(optlib_parser *p);
-void optlib_parser_add_option(optlib_parser *p, char const *long_opt,
+bool optlib_parser_add_option(optlib_parser *p, char const *long_opt,
                               char const short_opt, bool const has_arg,
                               char const *description);
 optlib_option *optlib_next(optlib_parser *p);
