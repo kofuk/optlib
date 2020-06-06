@@ -430,15 +430,22 @@ void optlib_print_help(struct optlib_parser *p, FILE *strm) {
 }
 
 #ifdef TEST
-#    define test_assert(expr)                                               \
-        do {                                                                \
-            if (!(expr)) {                                                  \
-                printf("\e[38;5;9m✗\e[0m Assertion %s failed (line: %d)\n", \
-                       #expr, __LINE__);                                    \
-                exit(1);                                                    \
-            } else {                                                        \
-                printf("\e[38;5;2m✓\e[0m %s\n", #expr);                     \
-            }                                                               \
+#    ifdef _WIN32
+#        define CHECK_MARK_OK "v "
+#        define CHECK_MARK_FAILURE "x "
+#    else
+#        define CHECK_MARK_OK "\e[38;5;2m✓\e[0m "
+#        define CHECK_MARK_FAILURE "\e[38;5;9m✗\e[0m "
+#    endif
+#    define test_assert(expr)                                                 \
+        do {                                                                  \
+            if (!(expr)) {                                                    \
+                printf(CHECK_MARK_FAILURE "Assertion %s failed (line: %d)\n", \
+                       #expr, __LINE__);                                      \
+                exit(1);                                                      \
+            } else {                                                          \
+                printf(CHECK_MARK_OK "%s\n", #expr);                          \
+            }                                                                 \
         } while (0);
 
 int main(void) {
