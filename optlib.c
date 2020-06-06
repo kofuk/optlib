@@ -2,12 +2,11 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-#    include <stdio.h>
-#else
+#ifndef _WIN32
 #    ifdef HAVE_GETOPT_LONG
 #        include <getopt.h>
 #    elif defined(HAVE_GETOPT)
@@ -216,7 +215,7 @@ optlib_option *optlib_next(optlib_parser *p) {
         pre_parse_initialize(p);
         p->initialized = true;
     }
-#if !defined(_WIN32) || (defined(HAVE_GETOPT_LONG) || defined(HAVE_GETOPT))
+#if !defined(_WIN32) && (defined(HAVE_GETOPT_LONG) || defined(HAVE_GETOPT))
     optind = p->optind;
     opterr = p->opterr;
 #endif
