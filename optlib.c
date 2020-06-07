@@ -54,22 +54,7 @@ optlib_parser *optlib_parser_new(int argc, char **argv) {
 
     /* duplicate argc and argv */
     p->argc = argc;
-    p->argv = malloc(sizeof(char *) * (unsigned int)argc);
-    if (!p->argv) return NULL;
-    size_t argv_total_size = 0;
-    for (int i = 0; i < argc; ++i) {
-        size_t len = strlen(argv[i]);
-        argv_total_size += len + 1;
-    }
-    char *argbuf = malloc(argv_total_size);
-    if (!argbuf) return NULL;
-    size_t off = 0;
-    for (int i = 0; i < argc; ++i) {
-        size_t len = strlen(argv[i]) + 1;
-        memcpy(argbuf + off, argv[i], len);
-        p->argv[i] = argbuf + off;
-        off += len;
-    }
+    p->argv = argv;
 
     p->options = malloc(sizeof(optlib_options));
     if (!p->options) return NULL;
@@ -84,9 +69,6 @@ optlib_parser *optlib_parser_new(int argc, char **argv) {
 }
 
 void optlib_parser_free(optlib_parser *p) {
-    /* p->argv[0] points to head of *all argument* buffer. */
-    free(p->argv[0]);
-    free(p->argv);
     for (size_t i = 0; i < p->options->option_count; ++i) {
         free(p->options->options[i].long_opt);
         free(p->options->options[i].description);
@@ -164,7 +146,8 @@ static bool prepare_getopt_long(optlib_parser *p) {
     /* for sentinel element */
     ++longcount;
 
-    struct option *new_longopts = realloc(p->longopts, sizeof(struct option) * longcount);
+    struct option *new_longopts =
+        realloc(p->longopts, sizeof(struct option) * longcount);
     if (!new_longopts) {
         return false;
     }
