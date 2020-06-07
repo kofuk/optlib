@@ -18,6 +18,8 @@
 #ifndef OPTLIB_H
 #define OPTLIB_H
 
+#include "config.h"
+
 #ifdef HAVE_GETOPT_LONG
 #    include <getopt.h>
 #endif
