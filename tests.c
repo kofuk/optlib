@@ -8,7 +8,7 @@
 static bool test_case_0(void) {
 #ifdef _WIN32
     char *argv[] = {"ls",      "foo.c", "-All",           "-Escape", "bar.c",
-                    "-Ignore", "*.c",   "-IgnoreBackups", "baz.c",    NULL};
+                    "-Ignore", "*.c",   "-IgnoreBackups", "baz.c",   NULL};
 #elif defined(HAVE_GETOPT_LONG)
     char *argv[] = {"ls",    "foo.c",    "--all", "-b",
                     "bar.c", "--ignore", "*.c",   "--ignore-backups",
@@ -98,4 +98,81 @@ static bool test_case_0(void) {
     return true;
 }
 
-int main(void) { return !test_case_0(); }
+bool test_case_1() {
+#ifdef _WIN32
+    char *argv[] = {"cat",   "-ShowAll", "-UndefinedOption", "foo.c", "bar.c",
+                    "baz.c", NULL};
+#elif defined(HAVE_GETOPT_LONG)
+    char *argv[] = {"cat",   "--show-all", "--undefined-option",
+                    "foo.c", "bar.c",      "baz.c",
+                    NULL};
+#elif defined(HAVE_GETOPT)
+    char *argv[] = {"cat", "-A", "-u", "foo.c", "bar.c", "baz.c", NULL};
+#else
+    char *argv[] = {NULL};
+#endif
+    int argc = 6;
+    optlib_parser *parser = optlib_parser_new(argc, argv);
+    optlib_parser_add_option(parser, "show-all", 'A', false,
+                             "show nongraphic characters.");
+
+    bool show_all = false;
+    int undefined_count = 0;
+    for (;;) {
+        optlib_option *opt = optlib_next(parser);
+        if (parser->finished) {
+            break;
+        }
+        if (!opt) {
+#ifdef WIN32
+            char *name = "-UndefinedOption";
+#elif defined(HAVE_GETOPT_LONG)
+            char *name = "--undefined-option";
+#elif defined(HAVE_GETOPT)
+            char *name = "-u";
+#else
+            char *name = "";
+#endif
+            test_assert(!strcmp(parser->argv[parser->optind - 1], name));
+            ++undefined_count;
+            continue;
+        }
+        switch (opt->short_opt) {
+        case 'A':
+            show_all = true;
+            break;
+        }
+    }
+    test_assert(undefined_count == 1);
+    bool has_foo_c = false;
+    bool has_bar_c = false;
+    bool has_baz_c = false;
+    for (int i = parser->optind; i < argc; ++i) {
+        if (!strcmp(parser->argv[i], "foo.c")) {
+            has_foo_c = true;
+        } else if (!strcmp(parser->argv[i], "bar.c")) {
+            has_bar_c = true;
+        } else if (!strcmp(parser->argv[i], "baz.c")) {
+            has_baz_c = true;
+        } else {
+            test_assert(false);
+        }
+    }
+    test_assert(has_foo_c);
+    test_assert(has_bar_c);
+    test_assert(has_baz_c);
+    test_assert(parser->argv[argc] == NULL);
+    optlib_parser_free(parser);
+    puts("test_case_1 finished normally.");
+    return true;
+}
+
+int main(void) {
+    bool (*test_cases[])(void) = {&test_case_0, &test_case_1, NULL};
+    for (int i = 0;; ++i) {
+        if (!test_cases[i]) {
+            break;
+        }
+        test_cases[i]();
+    }
+}
