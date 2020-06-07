@@ -28,7 +28,8 @@ add_executable(optlib_test_builtin optlib.c)
 target_compile_definitions(optlib_test_builtin PRIVATE -DTEST)
 add_test(NAME optlib_test_builtin COMMAND optlib_test_builtin)
 
-add_executable(optlib_test optlib.c tests.c)
+add_executable(optlib_test tests.c)
+target_link_libraries(optlib_test PRIVATE optlib)
 add_test(NAME optlib_test COMMAND optlib_test)
 
 configure_file(etc/optlib.pc.in optlib.pc @ONLY)
