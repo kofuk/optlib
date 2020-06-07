@@ -54,6 +54,9 @@ optlib_parser *optlib_parser_new(int argc, char **argv) {
 
     /* duplicate argc and argv */
     p->argc = argc;
+#ifdef _WIN32
+    p->argc_internal = argc;
+#endif
     p->argv = argv;
 
     p->options = malloc(sizeof(optlib_options));
@@ -218,7 +221,7 @@ optlib_option *optlib_next(optlib_parser *p) {
 #endif
 #ifdef _WIN32
 retry:
-    if (p->optind >= p->argc) {
+    if (p->optind >= p->argc_internal) {
         p->finished = true;
         return NULL;
     }
@@ -253,7 +256,9 @@ retry:
             p->argv[i] = tmp;
         }
         p->optind--;
-        p->argc--;
+#    ifdef _WIN32
+        p->argc_internal--;
+#    endif
         goto retry;
     }
 #else

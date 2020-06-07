@@ -55,6 +55,9 @@ typedef struct optlib_parser {
     char *shortopts;
 #    endif
 #endif
+#ifdef _WIN32
+    int argc_internal;
+#endif
 } optlib_parser;
 
 optlib_parser *optlib_parser_new(int argc, char **argv);

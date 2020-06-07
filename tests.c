@@ -72,25 +72,10 @@ static bool test_case_0(void) {
     test_assert(ignore_backups);
     test_assert(!directory);
 
-    bool has_foo_c = false;
-    bool has_bar_c = false;
-    bool has_baz_c = false;
-    for (int i = parser->optind; i < argc; ++i) {
-        if (!strcmp(parser->argv[i], "foo.c")) {
-            has_foo_c = true;
-        } else if (!strcmp(parser->argv[i], "bar.c")) {
-            has_bar_c = true;
-        } else if (!strcmp(parser->argv[i], "baz.c")) {
-            has_baz_c = true;
-        } else {
-            test_assert(false);
-            return false;
-        }
-    }
-    test_assert(has_foo_c);
-    test_assert(has_bar_c);
-    test_assert(has_baz_c);
-    test_assert(argv[argc] == NULL);
+    test_assert(parser->optind == 6);
+    test_assert(!strcmp(argv[6], "foo.c"));
+    test_assert(!strcmp(argv[7], "bar.c"));
+    test_assert(!strcmp(argv[8], "baz.c"));
 
     optlib_parser_free(parser);
 
@@ -144,24 +129,11 @@ bool test_case_1() {
         }
     }
     test_assert(undefined_count == 1);
-    bool has_foo_c = false;
-    bool has_bar_c = false;
-    bool has_baz_c = false;
-    for (int i = parser->optind; i < argc; ++i) {
-        if (!strcmp(parser->argv[i], "foo.c")) {
-            has_foo_c = true;
-        } else if (!strcmp(parser->argv[i], "bar.c")) {
-            has_bar_c = true;
-        } else if (!strcmp(parser->argv[i], "baz.c")) {
-            has_baz_c = true;
-        } else {
-            test_assert(false);
-        }
-    }
-    test_assert(has_foo_c);
-    test_assert(has_bar_c);
-    test_assert(has_baz_c);
-    test_assert(parser->argv[argc] == NULL);
+    test_assert(parser->optind == 3);
+    test_assert(!strcmp(argv[3], "foo.c"));
+    test_assert(!strcmp(argv[4], "bar.c"));
+    test_assert(!strcmp(argv[5], "baz.c"));
+
     optlib_parser_free(parser);
     puts("test_case_1 finished normally.");
     return true;
